@@ -71,6 +71,16 @@ public class GameInputProcessor implements InputProcessor {
         return false;
     }
 
+
+
+    public void procesarInput (int keycode , boolean pressed){
+        if (pressed){
+            keyDown(keycode);
+        } else {
+            keyUp(keycode);
+        }
+    }
+
     @Override public boolean keyTyped(char character) { return false; }
     @Override public boolean touchDown(int screenX, int screenY, int pointer, int button) { return false; }
     @Override public boolean touchUp(int screenX, int screenY, int pointer, int button) { return false; }

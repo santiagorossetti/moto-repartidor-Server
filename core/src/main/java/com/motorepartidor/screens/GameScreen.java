@@ -35,8 +35,9 @@ import com.motorepartidor.ui.HUD;
 import com.motorepartidor.ui.DeliveryIndicator;
 import com.badlogic.gdx.graphics.Color;
 import jdk.internal.org.jline.terminal.TerminalBuilder;
+import red.gameController;
 
-public class GameScreen implements Screen {
+public class GameScreen implements Screen , gameController {
 
     private Game game;
     private boolean initialized = false;
@@ -92,6 +93,17 @@ public class GameScreen implements Screen {
     private static final float VIRTUAL_WIDTH = 20f;
     private static final float VIRTUAL_HEIGHT = 15f;
 
+    @Override
+    public void interactuar(int tecla) {
+        boolean presionado = tecla >= 0;
+        int numeroPositivo = Math.abs(tecla);
+
+        this.inputProcessor.procesarInput(numeroPositivo , presionado);
+
+
+
+    }
+
     // Estado por jugador
     private static class ActiveDelivery {
         Rectangle target;
@@ -117,7 +129,7 @@ public class GameScreen implements Screen {
     public void show() {
         // 1. Si ya inicializamos todo, solo reactivamos el Input y salimos.
         if (initialized) {
-            Gdx.input.setInputProcessor(inputProcessor);
+
             // Opcional: reiniciar música si se detuvo en hide()
             return;
         }
@@ -162,7 +174,7 @@ public class GameScreen implements Screen {
         viewport2 = new FitViewport(VIRTUAL_WIDTH, VIRTUAL_HEIGHT, camera2);
 
         inputProcessor = new GameInputProcessor();
-        Gdx.input.setInputProcessor(inputProcessor);
+
 
 
         dealerLayer = tiledMap.getLayers().get("dealer");
@@ -422,10 +434,8 @@ public class GameScreen implements Screen {
         );
         hud.render(jugadores[0], jugadores[1], playerInGasArea[0], playerInGasArea[1]);
 
-        // --- ESC → Options ---
-        if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
-            game.setScreen(new OptionsScreen(game, this, audio));
-        }
+
+
     }
 
 

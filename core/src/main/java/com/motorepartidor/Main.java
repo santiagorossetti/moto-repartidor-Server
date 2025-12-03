@@ -31,8 +31,9 @@ public class Main extends Game {
         server.start();
 
         // Pantalla inicial
-        mainMenuScreen = new MainMenuScreen(this, this.audio);
-        setScreen(mainMenuScreen);
+        GameScreen gameScreen  = new GameScreen(this, this.audio);
+        this.server.setGameController(gameScreen);
+        setScreen(gameScreen);
     }
 
     /** Acceso global al AudioManager. */

@@ -11,7 +11,9 @@ public class hiloServidor extends Thread{
     private boolean fin = false;
     private ArrayList<direccionRed> clientes = new ArrayList<direccionRed>();
     private int cantidadClientes = 0;
-    private final int MAX_CLIENTES = 2;
+    private final int MAX_CLIENTES = 1;
+    private gameController gameController;
+
 
     public hiloServidor(){
         try {
@@ -55,6 +57,10 @@ public class hiloServidor extends Thread{
     private void procesarMensaje(DatagramPacket dp) {
         String msg = (new String(dp.getData())).trim();
         System.out.println(msg);
+
+        String letras [] = msg.split(":");
+
+
         if (msg.equals("Conexion")) {
 
             if (cantidadClientes < MAX_CLIENTES) {
@@ -72,8 +78,17 @@ public class hiloServidor extends Thread{
             }
 
 
+
         }
+        switch (letras[0]){
+            case "Input" :
+                int keycode = Integer.parseInt(letras[1]);
+                gameController.interactuar(keycode);
+        }
+
     }
 
-
+    public void setGameController(gameController gameController) {
+        this.gameController = gameController;
+    }
 }
