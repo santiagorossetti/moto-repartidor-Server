@@ -4,6 +4,7 @@ import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.Screen;
+import com.badlogic.gdx.utils.Null;
 import com.motorepartidor.Main;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
@@ -13,6 +14,8 @@ import com.badlogic.gdx.maps.MapLayer;
 import com.badlogic.gdx.maps.MapObject;
 import com.badlogic.gdx.maps.objects.RectangleMapObject;
 import com.badlogic.gdx.math.Rectangle;
+
+import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -36,6 +39,7 @@ import com.motorepartidor.ui.DeliveryIndicator;
 import com.badlogic.gdx.graphics.Color;
 import jdk.internal.org.jline.terminal.TerminalBuilder;
 import red.gameController;
+import red.hiloServidor;
 
 public class GameScreen implements Screen , gameController {
 
@@ -62,6 +66,7 @@ public class GameScreen implements Screen , gameController {
     private MapLayer entregasLayer;
     private final List<Rectangle> dealerAreas = new ArrayList<>();
     private final List<Rectangle> entregaAreas = new ArrayList<>();
+    public hiloServidor servidor;
 
 
 
@@ -93,6 +98,8 @@ public class GameScreen implements Screen , gameController {
     private static final float VIRTUAL_WIDTH = 20f;
     private static final float VIRTUAL_HEIGHT = 15f;
 
+
+
     @Override
     public void interactuar(int tecla) {
         boolean presionado = tecla >= 0;
@@ -104,11 +111,39 @@ public class GameScreen implements Screen , gameController {
 
     }
 
+    @Override
+    public void enviarNafta(float gas, int id) {
+        int puerto = servidor.clientes.get(id).getPort();
+        InetAddress ip = servidor.clientes.get(id).getIp();
+
+        servidor.enviarGas(gas , id , ip , puerto);
+    }
+
+    @Override
+    public void enviarDinero(int dinero , int id){
+        int puerto = servidor.clientes.get(id).getPort();
+        InetAddress ip = servidor.clientes.get(id).getIp();
+
+        servidor.enviarDinero(dinero , id , ip , puerto);
+    }
+
+    @Override
+    public void enviarVida(int vida, int id) {
+
+        int puerto = servidor.clientes.get(id).getPort();
+        InetAddress ip = servidor.clientes.get(id).getIp();
+
+        servidor.enviarVida(vida , id , ip , puerto);
+
+    }
+
     // Estado por jugador
-    private static class ActiveDelivery {
+    public static class ActiveDelivery {
         Rectangle target;
         boolean dangerous;
         int reward;
+
+
     }
     private ActiveDelivery p1Delivery = null;
     private ActiveDelivery p2Delivery = null;
@@ -118,11 +153,12 @@ public class GameScreen implements Screen , gameController {
 
     private final Random rng = new Random();
 
-    public GameScreen(Game game, AudioManager audio) {
+    public GameScreen(Game game, AudioManager audio , hiloServidor servidor) {
         this.game = game;
         this.audio = audio;
         this.chosenSpritePath = DEFAULT_SPRITE_PATH;
         this.chosenSpritePath2 = DEFAULT_SPRITE_PATH2;
+        this.servidor = servidor;
     }
 
     @Override
@@ -164,8 +200,8 @@ public class GameScreen implements Screen , gameController {
         }
 
         // Ahora se crea el Jugador después de que las capas del mapa están cargadas.
-        jugadores[0] = new Jugador(chosenSpritePath, 18, 36, new Vector2(1700, 500), collisionLayer);
-        jugadores[1] = new Jugador(chosenSpritePath2, 18, 36, new Vector2(1700, 450), collisionLayer);
+        jugadores[0] = new Jugador(chosenSpritePath, 18, 36, new Vector2(1700, 500), collisionLayer , this , 0 );
+        jugadores[1] = new Jugador(chosenSpritePath2, 18, 36, new Vector2(1700, 450), collisionLayer , this , 1);
 
         camera1 = new OrthographicCamera();
         viewport1 = new FitViewport(VIRTUAL_WIDTH, VIRTUAL_HEIGHT, camera1);
@@ -220,6 +256,10 @@ public class GameScreen implements Screen , gameController {
             int restaj1 = 100 - (int)jugadores[0].getGasolina();
             jugadores[0].restarDinero(restaj1);
             jugadores[0].recargarGasolina(100);
+
+            enviarDinero(jugadores[0].getDinero() , jugadores[0].id);
+            enviarNafta(jugadores[0].getGasolina() , jugadores[0].id);
+
             eKeyHandled = true;
             if (this.audio != null) this.audio.playSound("audio/refuel.wav", 1.0f);
             Gdx.app.log("GameScreen", "¡Jugador 1 recargó gasolina!");
@@ -231,6 +271,10 @@ public class GameScreen implements Screen , gameController {
             int restaj2 = 100 - (int)jugadores[1].getGasolina();
             jugadores[1].restarDinero(restaj2);
             jugadores[1].recargarGasolina(100);
+
+            enviarNafta(jugadores[1].getGasolina() , jugadores[1].id);
+            enviarDinero(jugadores[1].getDinero() , jugadores[1].id);
+
             pKeyHandled = true;
             if (this.audio != null) this.audio.playSound("audio/refuel.wav", 1.0f);
             Gdx.app.log("GameScreen", "¡Jugador 2 recargó gasolina!");
@@ -252,11 +296,18 @@ public class GameScreen implements Screen , gameController {
                 if (p1Delivery == null && nearDealer[0]) {
                     p1Delivery = createDelivery();
                     if (p1Delivery != null) {
+
+                        servidor.enviarUbicacionDelivery(p1Delivery.target , p1Delivery.dangerous , p1Delivery.reward , 0);
+
+
                         if (this.audio != null) this.audio.playSound("audio/pickup.wav", 1f);
                         Gdx.app.log("GameScreen", p1Delivery.dangerous ? "P1 tomó pedido PELIGROSO" : "P1 tomó pedido");
                     }
                 } else if (p1Delivery != null && nearDrop[0]) {
                     jugadores[0].sumarDinero(p1Delivery.reward);
+                    enviarDinero(jugadores[0].getDinero() , 0);
+                    servidor.enviarFinDelivery(0);
+
                     if (this.audio != null) this.audio.playSound("audio/deliver.wav", 1f);
                     Gdx.app.log("GameScreen", "P1 entregó pedido. +$" + p1Delivery.reward);
                     p1Delivery = null;
@@ -326,6 +377,7 @@ public class GameScreen implements Screen , gameController {
             playerCollidingWithObstacle[i] = checkPolygonCollisions(jugadores[i].getPolygon());
             if(playerCollidingWithObstacle[i] && !playerIsCollidingObstacle[i]) {
                 jugadores[i].restarVida(1);
+                enviarVida(jugadores[i].getVida() , i);
                 playerIsCollidingObstacle[i] = true;
             }
             else if (!playerCollidingWithObstacle[i]) {
@@ -338,6 +390,8 @@ public class GameScreen implements Screen , gameController {
                 Gdx.app.log("GameScreen", "¡Colisión entre jugadores detectada!");
                 jugadores[0].restarVida(10);
                 jugadores[1].restarVida(10);
+                enviarVida(jugadores[0].getVida() , 0);
+                enviarVida(jugadores[1].getVida() , 1);
                 playersAreColliding = true;
             }
         } else {
@@ -435,7 +489,9 @@ public class GameScreen implements Screen , gameController {
         hud.render(jugadores[0], jugadores[1], playerInGasArea[0], playerInGasArea[1]);
 
 
-
+        if (jugadores[0] != null || jugadores[1] != null) {
+            this.servidor.enviarPosicion(jugadores[0].getPosicion(), jugadores[1].getPosicion() ,jugadores[0].getAngulo() , jugadores[1].getAngulo());
+        }
     }
 
 
@@ -494,12 +550,13 @@ public class GameScreen implements Screen , gameController {
         return entregaAreas.get(rng.nextInt(entregaAreas.size()));
     }
 
-    private ActiveDelivery createDelivery() {
+    public ActiveDelivery createDelivery() {
         ActiveDelivery d = new ActiveDelivery();
         d.target = randomEntrega();
         if (d.target == null) return null;
         d.dangerous = rng.nextFloat() < 0.25f; // 25% peligroso
         d.reward = d.dangerous ? 130 : 65;
+
         return d;
     }
 

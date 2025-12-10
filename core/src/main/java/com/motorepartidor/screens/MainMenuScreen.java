@@ -108,16 +108,16 @@ public class MainMenuScreen implements Screen {
         TextButton optionsBtn = new TextButton("Opciones", skin);
         TextButton exitBtn = new TextButton("Salir", skin);
 
-        playBtn.addListener(new ClickListener() {
+      /*  playBtn.addListener(new ClickListener() {
             @Override public void clicked(InputEvent event, float x, float y) {
                 try {
                     // Si tu GameScreen requiere otra firma, cámbialo acá:
-                    game.setScreen(new GameScreen(game, audio));
+                    game.setScreen(new GameScreen(game, audio , ));
                 } catch (Throwable t) {
                     Gdx.app.error("MainMenu", "Error al abrir GameScreen", t);
                 }
             }
-        });
+        });*/
         optionsBtn.addListener(new ClickListener() {
             @Override public void clicked(InputEvent event, float x, float y) {
                 try {

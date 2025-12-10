@@ -8,6 +8,8 @@ import com.badlogic.gdx.math.Polygon;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 import com.motorepartidor.entities.Jugador;
+import red.hiloServidor;
+import red.gameController;
 
 public class PlayerController {
 
@@ -25,13 +27,16 @@ public class PlayerController {
     private static final float GIRO_VELOCIDAD = 160f;
     private static final float VELOCIDAD_MAXIMA = 250f;
     private static final float VELOCIDAD_MINIMA = -150f;
+    private gameController juego;
 
     // Referencia a la capa de colisiones para su uso en este componente
     private MapLayer collisionLayer;
 
     // Constructor que recibe la capa de colisiones
-    public PlayerController(MapLayer collisionLayer) {
+    public PlayerController(MapLayer collisionLayer , gameController gameController ) {
         this.collisionLayer = collisionLayer;
+        this.juego = gameController;
+
     }
 
     public void update(Jugador jugador, PlayerInput input, float dt) {
@@ -73,9 +78,11 @@ public class PlayerController {
         if (Math.abs(velocidadActual) > 0) {
             float consumo = (Math.abs(velocidadActual) * 0.005f + (input.accelerate() ? 0.02f : 0f)) * dt;
             gasolinaActual -= consumo;
+
             if (gasolinaActual < 0) {
                 gasolinaActual = 0;
             }
+            juego.enviarNafta(gasolinaActual , jugador.id);
         }
 
         // 5. Integración de posición y colisiones (solo si hay gasolina)
@@ -111,6 +118,9 @@ public class PlayerController {
         jugador.setAngulo(anguloActual);
         jugador.setVelocidad(velocidadActual);
         jugador.gastarGasolina(jugador.getGasolina() - gasolinaActual);
+
+
+
     }
 
     // Método para detectar colisiones con los polígonos del mapa

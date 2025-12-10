@@ -10,6 +10,8 @@ import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 import com.motorepartidor.entities.components.PlayerController;
 import com.motorepartidor.entities.components.PlayerRenderer;
+import red.hiloServidor;
+import red.gameController;
 
 public class Jugador {
     private Texture textura;
@@ -18,6 +20,7 @@ public class Jugador {
     private Vector2 posicion;
     private float angulo;
 
+    public hiloServidor servidor;
     private Rectangle bounds;
     private Polygon polygon;
 
@@ -27,11 +30,17 @@ public class Jugador {
     private float gasolina;
     private static final float GASOLINA_MAXIMA = 100;
     private int dinero;
+    public int id;
 
     private PlayerController controller;
     private PlayerRenderer renderer;
+    private gameController juego;
 
-    public Jugador(String texturaPath, int frameWidth, int frameHeight, Vector2 posicionInicial, MapLayer collisionLayer) {
+    public Jugador(String texturaPath, int frameWidth, int frameHeight, Vector2 posicionInicial, MapLayer collisionLayer , gameController juego , int id) {
+
+        this.juego = juego;
+        this.id = id;
+
         try {
             this.textura = new Texture(Gdx.files.internal(texturaPath));
 
@@ -68,7 +77,7 @@ public class Jugador {
         this.polygon.setOrigin(frameWidth / 2f, frameHeight / 2f);
         this.polygon.setPosition(posicionInicial.x, posicionInicial.y);
 
-        this.controller = new PlayerController(collisionLayer);
+        this.controller = new PlayerController(collisionLayer , juego);
         this.renderer = new PlayerRenderer(this);
     }
 
@@ -78,6 +87,7 @@ public class Jugador {
 
         polygon.setPosition(posicion.x, posicion.y);
         bounds.setPosition(posicion.x, posicion.y);
+
     }
 
     public void dibujar(Batch batch) {

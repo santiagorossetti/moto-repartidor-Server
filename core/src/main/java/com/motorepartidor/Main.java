@@ -31,7 +31,7 @@ public class Main extends Game {
         server.start();
 
         // Pantalla inicial
-        GameScreen gameScreen  = new GameScreen(this, this.audio);
+        GameScreen gameScreen  = new GameScreen(this, this.audio , this.server);
         this.server.setGameController(gameScreen);
         setScreen(gameScreen);
     }
@@ -54,7 +54,7 @@ public class Main extends Game {
         if (gameScreen != null) {
             gameScreen.dispose();
         }
-        gameScreen = new GameScreen(this, audio);
+        gameScreen = new GameScreen(this, audio , this.server);
         setScreen(gameScreen);
     }
 
