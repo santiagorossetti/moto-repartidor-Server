@@ -15,7 +15,7 @@ public class hiloServidor extends Thread{
     private boolean fin = false;
     public ArrayList<direccionRed> clientes = new ArrayList<direccionRed>();
     private int cantidadClientes = 0;
-    private final int MAX_CLIENTES = 1;
+    private final int MAX_CLIENTES = 2;
     private gameController gameController;
 
 
@@ -75,6 +75,9 @@ public class hiloServidor extends Thread{
                     clientes.add(usuario);
                     enviarMensaje("OK", dp.getAddress(), dp.getPort());
 
+                    int id = clientes.size() - 1;
+                    enviarMensaje("ID:" + id, dp.getAddress(), dp.getPort());
+
                     if (cantidadClientes == MAX_CLIENTES) {
                         enviarGlobal("Comienza");
                     }
@@ -84,12 +87,16 @@ public class hiloServidor extends Thread{
 
         }
         switch (letras[0]){
-            case "Input" :
-                int keycode = Integer.parseInt(letras[1]);
+            case "Input":
+                int idJugador = Integer.parseInt(letras[1]);
+                int keycode = Integer.parseInt(letras[2]);
+
                 Gdx.app.postRunnable(() -> {
-                    if (gameController != null )
-                        gameController.interactuar(keycode);
+                    if (gameController != null)
+                        gameController.interactuar(idJugador, keycode);
                 });
+                break;
+
 
         }
 
@@ -133,6 +140,21 @@ public class hiloServidor extends Thread{
         enviarMensaje("Vida:" + vida + ":" + id , ip , port);
 
     }
+
+
+
+    public void enviarHint(int idJugador, int hintTipo) {
+        if (idJugador < 0 || idJugador >= clientes.size()) return;
+
+        direccionRed cliente = clientes.get(idJugador);
+        InetAddress ip = cliente.getIp();
+        int port = cliente.getPort();
+
+        // Formato: Hint:id:tipo
+        // ej: Hint:0:1  -> jugador 0, "Aceptar pedido"
+        enviarMensaje("Hint:" + idJugador + ":" + hintTipo, ip, port);
+    }
+
 
     public void enviarUbicacionDelivery (Rectangle target, boolean dangerous, int reward, int idJugador ){
 

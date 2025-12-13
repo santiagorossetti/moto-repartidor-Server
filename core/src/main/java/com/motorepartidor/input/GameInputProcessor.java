@@ -35,16 +35,16 @@ public class GameInputProcessor implements InputProcessor {
             case Input.Keys.A: leftPressed = true; break;
             case Input.Keys.D: rightPressed = true; break;
 
-            case Input.Keys.UP: arrowUpPressed = true; break;
+           /* case Input.Keys.UP: arrowUpPressed = true; break;
             case Input.Keys.DOWN: arrowDownPressed = true; break;
             case Input.Keys.LEFT: arrowLeftPressed = true; break;
-            case Input.Keys.RIGHT: arrowRightPressed = true; break;
+            case Input.Keys.RIGHT: arrowRightPressed = true; break;*/
 
             case Input.Keys.E: ePressed = true; break;
-            case Input.Keys.P: pPressed = true; break;
+            //case Input.Keys.P: pPressed = true; break;
 
             case Input.Keys.G: gPressed = true; break;
-            case Input.Keys.L: lPressed = true; break;
+            //case Input.Keys.L: lPressed = true; break;
         }
         return false;
     }
@@ -57,16 +57,16 @@ public class GameInputProcessor implements InputProcessor {
             case Input.Keys.A: leftPressed = false; break;
             case Input.Keys.D: rightPressed = false; break;
 
-            case Input.Keys.UP: arrowUpPressed = false; break;
+           /* case Input.Keys.UP: arrowUpPressed = false; break;
             case Input.Keys.DOWN: arrowDownPressed = false; break;
             case Input.Keys.LEFT: arrowLeftPressed = false; break;
-            case Input.Keys.RIGHT: arrowRightPressed = false; break;
+            case Input.Keys.RIGHT: arrowRightPressed = false; break;*/
 
             case Input.Keys.E: ePressed = false; break;
-            case Input.Keys.P: pPressed = false; break;
+            //case Input.Keys.P: pPressed = false; break;
 
             case Input.Keys.G: gPressed = false; break;
-            case Input.Keys.L: lPressed = false; break;
+            //case Input.Keys.L: lPressed = false; break;
         }
         return false;
     }

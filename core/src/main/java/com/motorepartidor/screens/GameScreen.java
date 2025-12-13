@@ -70,7 +70,11 @@ public class GameScreen implements Screen , gameController {
 
 
 
+
     private AudioManager audio;
+
+    private int[] lastHint = new int[]{-1, -1};
+
 
     // Jugadores como array
     private Jugador[] jugadores = new Jugador[2];
@@ -80,11 +84,11 @@ public class GameScreen implements Screen , gameController {
     private boolean playersAreColliding = false;
     private boolean[] playerIsCollidingObstacle = new boolean[2];
 
-    private GameInputProcessor inputProcessor;
+    private GameInputProcessor[] inputProcessors = new GameInputProcessor[2];;
 
-    private boolean eKeyHandled = false;
-    private boolean pKeyHandled = false;
-    private boolean gKeyHandled = false, lKeyHandled = false;
+    boolean[] eKeyHandled = new boolean[2];
+
+    boolean[] gKeyHandled = new boolean[2];
 
     private static final String DEFAULT_SPRITE_PATH = "sprites/sprite.png";
     private static final String DEFAULT_SPRITE_PATH2 = "sprites/sprite2.png";
@@ -101,33 +105,36 @@ public class GameScreen implements Screen , gameController {
 
 
     @Override
-    public void interactuar(int tecla) {
-        boolean presionado = tecla >= 0;
-        int numeroPositivo = Math.abs(tecla);
+    public void interactuar(int IdJugador ,int tecla) {
 
-        this.inputProcessor.procesarInput(numeroPositivo , presionado);
+        if (IdJugador < 0 || IdJugador >= inputProcessors.length) return;
+
+        boolean presionado = tecla >= 0;
+        int key = Math.abs(tecla);
+
+        inputProcessors[IdJugador].procesarInput(key, presionado);
 
 
 
     }
 
-    @Override
-    public void enviarNafta(float gas, int id) {
+    //@Override
+    /*public void enviarNafta(float gas, int id) {
         int puerto = servidor.clientes.get(id).getPort();
         InetAddress ip = servidor.clientes.get(id).getIp();
 
         servidor.enviarGas(gas , id , ip , puerto);
-    }
+    }*/
 
-    @Override
+    /*@Override
     public void enviarDinero(int dinero , int id){
         int puerto = servidor.clientes.get(id).getPort();
         InetAddress ip = servidor.clientes.get(id).getIp();
 
         servidor.enviarDinero(dinero , id , ip , puerto);
-    }
+    }*/
 
-    @Override
+    /*@Override
     public void enviarVida(int vida, int id) {
 
         int puerto = servidor.clientes.get(id).getPort();
@@ -135,7 +142,7 @@ public class GameScreen implements Screen , gameController {
 
         servidor.enviarVida(vida , id , ip , puerto);
 
-    }
+    }*/
 
     // Estado por jugador
     public static class ActiveDelivery {
@@ -209,7 +216,9 @@ public class GameScreen implements Screen , gameController {
         camera2 = new OrthographicCamera();
         viewport2 = new FitViewport(VIRTUAL_WIDTH, VIRTUAL_HEIGHT, camera2);
 
-        inputProcessor = new GameInputProcessor();
+        inputProcessors[0] = new GameInputProcessor();
+        inputProcessors[1] = new GameInputProcessor();
+
 
 
 
@@ -252,7 +261,7 @@ public class GameScreen implements Screen , gameController {
             playerInGasArea[1] = checkPlayerInGasArea(jugadores[1]);
 
 
-        if (playerInGasArea[0] && inputProcessor.isEPressed() && !eKeyHandled) {
+        /*if (playerInGasArea[0] && inputProcessor.isEPressed() && !eKeyHandled) {
             int restaj1 = 100 - (int)jugadores[0].getGasolina();
             jugadores[0].restarDinero(restaj1);
             jugadores[0].recargarGasolina(100);
@@ -280,7 +289,25 @@ public class GameScreen implements Screen , gameController {
             Gdx.app.log("GameScreen", "¡Jugador 2 recargó gasolina!");
         } else if (!inputProcessor.isPPressed()) {
             pKeyHandled = false;
+        }*/
+
+        for (int i = 0; i < jugadores.length; i++) {
+            GameInputProcessor ip = inputProcessors[i];
+
+            if (playerInGasArea[i] && ip.isEPressed() && !eKeyHandled[i]) {
+                int falta = 100 - (int) jugadores[i].getGasolina();
+                jugadores[i].restarDinero(falta);
+                jugadores[i].recargarGasolina(100);
+
+                enviarDinero(jugadores[i].getDinero(), i);
+                enviarNafta(jugadores[i].getGasolina(), i);
+
+                eKeyHandled[i] = true;
+            } else if (!ip.isEPressed()) {
+                eKeyHandled[i] = false;
+            }
         }
+
 
         // --- PROXIMIDAD A ZONAS ---
         nearDealer[0] = isInAny(jugadores[0],dealerAreas);
@@ -290,8 +317,33 @@ public class GameScreen implements Screen , gameController {
         nearDrop[0]   = (p1Delivery != null) && jugadores[0].getBounds().overlaps(p1Delivery.target);
         nearDrop[1]   = (p2Delivery != null) && jugadores[1].getBounds().overlaps(p2Delivery.target);
 
+        // --- HINT JUGADOR 0 ---
+        int hint0 = 0;
+        if (p1Delivery == null && nearDealer[0]) {
+            hint0 = 1; // Aceptar pedido
+        } else if (p1Delivery != null && nearDrop[0]) {
+            hint0 = 2; // Entregar pedido
+        }
+        if (hint0 != lastHint[0]) {
+            lastHint[0] = hint0;
+            servidor.enviarHint(0, hint0);
+        }
+
+// --- HINT JUGADOR 1 ---
+        int hint1 = 0;
+        if (p2Delivery == null && nearDealer[1]) {
+            hint1 = 1;
+        } else if (p2Delivery != null && nearDrop[1]) {
+            hint1 = 2;
+        }
+        if (hint1 != lastHint[1]) {
+            lastHint[1] = hint1;
+            servidor.enviarHint(1, hint1);
+        }
+
+
         // --- ACEPTAR / ENTREGAR: JUGADOR 1 (G) ---
-        if (inputProcessor.isGPressed()) {
+       /* if (inputProcessor.isGPressed()) {
             if (!gKeyHandled) {
                 if (p1Delivery == null && nearDealer[0]) {
                     p1Delivery = createDelivery();
@@ -317,18 +369,77 @@ public class GameScreen implements Screen , gameController {
         } else {
             gKeyHandled = false;
         }
+        */
+
+        //Detecta si se presiona la G
+
+        // Detecta si se presiona la G (por jugador)
+        for (int i = 0; i < 2; i++) {
+            GameInputProcessor ip = inputProcessors[i];
+
+            if (ip.isGPressed()) {
+                if (!gKeyHandled[i]) {
+
+                    if (i == 0) {
+                        // --- PLAYER 0 ---
+                        if (p1Delivery == null && nearDealer[0]) {
+                            p1Delivery = createDelivery();
+                            if (p1Delivery != null) {
+                                servidor.enviarUbicacionDelivery(
+                                    p1Delivery.target, p1Delivery.dangerous, p1Delivery.reward, 0
+                                );
+                                if (this.audio != null) this.audio.playSound("audio/pickup.wav", 1f);
+                            }
+                        } else if (p1Delivery != null && nearDrop[0]) {
+                            jugadores[0].sumarDinero(p1Delivery.reward);
+                            enviarDinero(jugadores[0].getDinero(), 0);
+                            servidor.enviarFinDelivery(0);
+                            if (this.audio != null) this.audio.playSound("audio/deliver.wav", 1f);
+                            p1Delivery = null;
+                        }
+
+                    } else if (i == 1) {
+                        // --- PLAYER 1 ---
+                        if (p2Delivery == null && nearDealer[1]) {
+                            p2Delivery = createDelivery();
+                            if (p2Delivery != null) {
+                                servidor.enviarUbicacionDelivery(
+                                    p2Delivery.target, p2Delivery.dangerous, p2Delivery.reward, 1
+                                );
+                                if (this.audio != null) this.audio.playSound("audio/pickup.wav", 1f);
+                            }
+                        } else if (p2Delivery != null && nearDrop[1]) {
+                            jugadores[1].sumarDinero(p2Delivery.reward);
+                            enviarDinero(jugadores[1].getDinero(), 1);
+                            servidor.enviarFinDelivery(1);
+                            if (this.audio != null) this.audio.playSound("audio/deliver.wav", 1f);
+                            p2Delivery = null;
+                        }
+                    }
+
+                    gKeyHandled[i] = true;
+                }
+            } else {
+                gKeyHandled[i] = false;
+            }
+        }
+
 
         // --- ACEPTAR / ENTREGAR: JUGADOR 2 (L) ---
-        if (inputProcessor.isLPressed()) {
+       /* if (inputProcessor.isLPressed()) {
             if (!lKeyHandled) {
                 if (p2Delivery == null && nearDealer[1]) {
                     p2Delivery = createDelivery();
                     if (p2Delivery != null) {
+                        servidor.enviarUbicacionDelivery(p2Delivery.target , p2Delivery.dangerous , p2Delivery.reward , 1);
                         if (this.audio != null) this.audio.playSound("audio/pickup.wav", 1f);
                         Gdx.app.log("GameScreen", p2Delivery.dangerous ? "P2 tomó pedido PELIGROSO" : "P2 tomó pedido");
                     }
                 } else if (p2Delivery != null && nearDrop[1]) {
                     jugadores[1].sumarDinero(p2Delivery.reward);
+                    enviarDinero(jugadores[1].getDinero() , 1);
+                    servidor.enviarFinDelivery(1);
+
                     if (this.audio != null) this.audio.playSound("audio/deliver.wav", 1f);
                     Gdx.app.log("GameScreen", "P2 entregó pedido. +$" + p2Delivery.reward);
                     p2Delivery = null;
@@ -337,7 +448,7 @@ public class GameScreen implements Screen , gameController {
             }
         } else {
             lKeyHandled = false;
-        }
+        }*/
 
         // Centro del destino -> ESCALADO a mundo
         if (p1Delivery != null && p1Delivery.target != null) {
@@ -357,18 +468,16 @@ public class GameScreen implements Screen , gameController {
         }
 
         // --- UPDATE JUGADORES ---
-        jugadores[0].update(new PlayerController.PlayerInput() {
-            @Override public boolean accelerate() { return inputProcessor.isUpPressed(); }
-            @Override public boolean brake() { return inputProcessor.isDownPressed(); }
-            @Override public boolean turnLeft() { return inputProcessor.isLeftPressed(); }
-            @Override public boolean turnRight() { return inputProcessor.isRightPressed(); }
-        }, delta);
-        jugadores[1].update(new PlayerController.PlayerInput() {
-            @Override public boolean accelerate() { return inputProcessor.isArrowUpPressed(); }
-            @Override public boolean brake() { return inputProcessor.isArrowDownPressed(); }
-            @Override public boolean turnLeft() { return inputProcessor.isArrowLeftPressed(); }
-            @Override public boolean turnRight() { return inputProcessor.isArrowRightPressed(); }
-        }, delta);
+        for (int i = 0; i < jugadores.length; i++) {
+            final GameInputProcessor ip = inputProcessors[i];
+
+            jugadores[i].update(new PlayerController.PlayerInput() {
+                @Override public boolean accelerate() { return ip.isUpPressed(); }
+                @Override public boolean brake()      { return ip.isDownPressed(); }
+                @Override public boolean turnLeft()   { return ip.isLeftPressed(); }
+                @Override public boolean turnRight()  { return ip.isRightPressed(); }
+            }, delta);
+        }
 
 
         // --- COLISIONES / DAÑO ---
@@ -649,4 +758,42 @@ public class GameScreen implements Screen , gameController {
         p2Indicator.dispose();
         hud.dispose();
     }
+
+    //Solo para enviar al cliente que si existe, comentar una vez finalizadas las pruebas
+
+    @Override
+    public void enviarNafta(float gas, int id) {
+        if (id < 0 || id >= servidor.clientes.size()) {
+            // Jugador sin cliente asociado (por ejemplo, P1 local)
+            return;
+        }
+        int puerto = servidor.clientes.get(id).getPort();
+        InetAddress ip = servidor.clientes.get(id).getIp();
+
+        servidor.enviarGas(gas , id , ip , puerto);
+    }
+
+    @Override
+    public void enviarDinero(int dinero , int id){
+        if (id < 0 || id >= servidor.clientes.size()) {
+            return;
+        }
+        int puerto = servidor.clientes.get(id).getPort();
+        InetAddress ip = servidor.clientes.get(id).getIp();
+
+        servidor.enviarDinero(dinero , id , ip , puerto);
+    }
+
+    @Override
+    public void enviarVida(int vida, int id) {
+        if (id < 0 || id >= servidor.clientes.size()) {
+            return;
+        }
+        int puerto = servidor.clientes.get(id).getPort();
+        InetAddress ip = servidor.clientes.get(id).getIp();
+
+        servidor.enviarVida(vida , id , ip , puerto);
+    }
+
+
 }
