@@ -157,6 +157,18 @@ public class Jugador {
         if (gasolina < 0) gasolina = 0;
     }
 
+    public void setGasolina(float gasolina) {
+        this.gasolina = gasolina;
+    }
+
+    public Vector2 getPosicionInicial (Vector2 posicion) {return posicion;}
+
+    public void setPosicionInicial (Vector2 posicion){
+
+        this.posicion = posicion;
+
+    }
+
     public void recargarGasolina(float cantidad) {
         gasolina += cantidad;
         if (gasolina > GASOLINA_MAXIMA) gasolina = GASOLINA_MAXIMA;

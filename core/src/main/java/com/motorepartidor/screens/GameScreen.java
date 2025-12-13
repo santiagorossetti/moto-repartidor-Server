@@ -98,6 +98,8 @@ public class GameScreen implements Screen , gameController {
     private DeliveryIndicator p1Indicator = new DeliveryIndicator();
     private DeliveryIndicator p2Indicator = new DeliveryIndicator();
 
+
+    private boolean matchEnding = false;
     private static final float UNIT_SCALE = 1 / 64f;
     private static final float VIRTUAL_WIDTH = 20f;
     private static final float VIRTUAL_HEIGHT = 15f;
@@ -671,6 +673,7 @@ public class GameScreen implements Screen , gameController {
 
     private void checkEndMatch() {
         if (jugadores == null || jugadores.length < 2) return;
+        if (matchEnding) return;
 
         int vida1 = jugadores[0].getVida();
         int vida2 = jugadores[1].getVida();
@@ -682,6 +685,8 @@ public class GameScreen implements Screen , gameController {
         if ((vida1 > 0 && vida2 > 0) && (plata1 < 1000 && plata2 < 1000)) {
             return;
         }
+
+        matchEnding = true;
 
         // --- 2. Si salimos del 'if' anterior, la partida TERMINÓ ---
         // Ahora determinamos el resultado usando una estructura if-else if-else
@@ -698,7 +703,7 @@ public class GameScreen implements Screen , gameController {
 
         // --- 4. Condición de Victoria JUGADOR 2 (Segunda prioridad) ---
         // J1 murió (y J2 no) O J2 llegó a 1000 (y J1 no).
-        else if (vida1 <= 0 || plata2 >= 1000) {
+        else if (vida1 <= 0 || plata2 >= 200) {
             winnerIndex = 2; // 2 = Gana Jugador 2
         }
 
@@ -713,22 +718,70 @@ public class GameScreen implements Screen , gameController {
 
         // --- 6. Finalizar la partida ---
 
-        // Parar música del juego
-        if (audio != null) {
-            try {
-                audio.stopMusic();
-            } catch (Exception ignored) {}
-        }
 
-        // Llamar a la pantalla de resultado
-        if (game instanceof Main) {
-            ((Main) game).onMatchFinished(winnerIndex);
-        } else {
-            game.setScreen(new MainMenuScreen(game, audio));
-        }
+        // avisar a clientes
+        servidor.enviarGameOver(winnerIndex);
+
+        resetMatch();
+
+        matchEnding = false;
+
+
+
     }
 
-    @Override
+    public void resetMatch() {
+
+            // --- reset posiciones / ángulos ---
+            jugadores[0].setPosicionInicial(new Vector2(1700, 500));
+            jugadores[1].setPosicionInicial(new Vector2(1700, 450));
+            jugadores[0].setAngulo(0f);
+            jugadores[1].setAngulo(0f);
+
+            // --- reset stats ---
+            jugadores[0].setVida(100);
+            jugadores[1].setVida(100);
+
+            jugadores[0].setDinero(0);
+            jugadores[1].setDinero(0);
+
+            jugadores[0].setGasolina(100);
+            jugadores[1].setGasolina(100);
+
+            // --- reset deliveries ---
+            p1Delivery = null;
+            p2Delivery = null;
+
+            // --- reset hints para que el cliente no quede con “Aceptar pedido” pegado ---
+            lastHint[0] = -1;
+            lastHint[1] = -1;
+            servidor.enviarHint(0, 0);
+            servidor.enviarHint(1, 0);
+
+            // --- reset flags colisiones ---
+            playersAreColliding = false;
+            playerIsCollidingObstacle[0] = false;
+            playerIsCollidingObstacle[1] = false;
+
+            // --- MUY IMPORTANTE: reset inputs del server (evita W “pegada” por UDP perdido) ---
+            inputProcessors[0] = new GameInputProcessor();
+            inputProcessors[1] = new GameInputProcessor();
+
+            // --- opcional pero recomendado: reenviar stats a clientes ---
+            enviarVida(jugadores[0].getVida(), 0);
+            enviarVida(jugadores[1].getVida(), 1);
+
+            enviarDinero(jugadores[0].getDinero(), 0);
+            enviarDinero(jugadores[1].getDinero(), 1);
+
+            enviarNafta(jugadores[0].getGasolina(), 0);
+            enviarNafta(jugadores[1].getGasolina(), 1);
+
+            // y en el próximo frame ya mandás Movimiento como siempre
+        }
+
+
+        @Override
     public void resize(int width, int height) {
         viewport1.update(width / 2, height, false);
         viewport2.update(width / 2, height, false);
@@ -761,38 +814,43 @@ public class GameScreen implements Screen , gameController {
 
     //Solo para enviar al cliente que si existe, comentar una vez finalizadas las pruebas
 
+
     @Override
     public void enviarNafta(float gas, int id) {
-        if (id < 0 || id >= servidor.clientes.size()) {
-            // Jugador sin cliente asociado (por ejemplo, P1 local)
-            return;
-        }
-        int puerto = servidor.clientes.get(id).getPort();
-        InetAddress ip = servidor.clientes.get(id).getIp();
 
-        servidor.enviarGas(gas , id , ip , puerto);
+        if (id < 0 || id >= servidor.clientes.length) return;
+        if (servidor.clientes[id] == null) return;
+
+        int puerto = servidor.clientes[id].getPort();
+        InetAddress ip = servidor.clientes[id].getIp();
+
+        servidor.enviarGas(gas, id, ip, puerto);
     }
 
-    @Override
-    public void enviarDinero(int dinero , int id){
-        if (id < 0 || id >= servidor.clientes.size()) {
-            return;
-        }
-        int puerto = servidor.clientes.get(id).getPort();
-        InetAddress ip = servidor.clientes.get(id).getIp();
 
-        servidor.enviarDinero(dinero , id , ip , puerto);
+
+    @Override
+    public void enviarDinero(int dinero, int id) {
+
+        if (id < 0 || id >= servidor.clientes.length) return;
+        if (servidor.clientes[id] == null) return;
+
+        int puerto = servidor.clientes[id].getPort();
+        InetAddress ip = servidor.clientes[id].getIp();
+
+        servidor.enviarDinero(dinero, id, ip, puerto);
     }
 
     @Override
     public void enviarVida(int vida, int id) {
-        if (id < 0 || id >= servidor.clientes.size()) {
-            return;
-        }
-        int puerto = servidor.clientes.get(id).getPort();
-        InetAddress ip = servidor.clientes.get(id).getIp();
 
-        servidor.enviarVida(vida , id , ip , puerto);
+        if (id < 0 || id >= servidor.clientes.length) return;
+        if (servidor.clientes[id] == null) return;
+
+        int puerto = servidor.clientes[id].getPort();
+        InetAddress ip = servidor.clientes[id].getIp();
+
+        servidor.enviarVida(vida, id, ip, puerto);
     }
 
 
