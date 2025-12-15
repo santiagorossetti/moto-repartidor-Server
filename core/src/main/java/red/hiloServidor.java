@@ -55,22 +55,22 @@ public class hiloServidor extends Thread {
             try {
                 byte[] data = new byte[1024];
                 DatagramPacket dp = new DatagramPacket(data, data.length);
-
-                try {
-                    conexion.receive(dp);
-                    procesarMensaje(dp);
-                } catch (SocketTimeoutException ignored) {
-                    // normal: cada 250ms chequeamos timeouts
-                }
-
-                // ✅ siempre chequeamos desconexiones silenciosas
-                checkTimeouts();
-
-            } catch (Throwable t) {
-                if (!fin) t.printStackTrace();
+                conexion.receive(dp);
+                procesarMensaje(dp);
+            } catch (SocketTimeoutException ignored) {
+                // no llegó nada, igual reviso timeouts
+            } catch (IOException e) {
+                if (!fin) e.printStackTrace();
             }
+
+            checkTimeouts();
         }
     }
+
+    private void touch(int id) {
+        if (id >= 0 && id < MAX_CLIENTES) lastSeen[id] = System.currentTimeMillis();
+    }
+
 
     public void terminarServidor() {
         fin = true;
@@ -165,27 +165,24 @@ public class hiloServidor extends Thread {
 
     private void checkTimeouts() {
         long now = System.currentTimeMillis();
-
-        for (int i = 0; i < MAX_CLIENTES; i++) {
-            if (clientes[i] == null) continue;
-
-            long ls = lastSeen[i];
-            if (ls == 0) continue;
-
-            if (now - ls > CLIENT_TIMEOUT_MS) {
-                // ✅ este cliente murió (no mandó Ping/Input)
-                int muerto = i;
-
-                clientes[muerto] = null;
-                lastSeen[muerto] = 0;
+        for (int id = 0; id < MAX_CLIENTES; id++) {
+            if (clientes[id] == null) continue;
+            if (now - lastSeen[id] > CLIENT_TIMEOUT_MS) {
+                // este cliente murió sin mandar Disconnect
+                clientes[id] = null;
                 cantidadClientes = Math.max(0, cantidadClientes - 1);
 
-                // ✅ avisar rival
-                int rival = (muerto == 0) ? 1 : 0;
+                int rival = (id == 0) ? 1 : 0;
                 direccionRed r = safeGetCliente(rival);
                 if (r != null) {
-                    enviarMensaje("OpponentLeft:" + muerto, r.getIp(), r.getPort());
+                    enviarMensaje("OpponentLeft:" + id, r.getIp(), r.getPort());
                 }
+
+                // opcional: reset server state + enviar "Reset"
+                // enviarGlobal("Reset");
+                // Gdx.app.postRunnable(() -> { if (gameController != null) gameController.onResetMatch(); });
+
+                break;
             }
         }
     }
@@ -201,6 +198,7 @@ public class hiloServidor extends Thread {
         String[] letras = msg.split(":");
 
         if (msg.equals("Conexion")) {
+
             conectarCliente(dp);
             return;
         }
@@ -208,6 +206,7 @@ public class hiloServidor extends Thread {
         if ("Disconnect".equals(letras[0])) {
             if (letras.length >= 2) {
                 int id = Integer.parseInt(letras[1]);
+                touch(id);
                 desconectarClienteYNotificar(id, dp);
             }
             return;
@@ -217,6 +216,7 @@ public class hiloServidor extends Thread {
             // Formato: Ping:id
             if (letras.length >= 2) {
                 int id = Integer.parseInt(letras[1]);
+                touch(id);
                 direccionRed c = safeGetCliente(id);
                 if (c != null) {
                     lastSeen[id] = System.currentTimeMillis(); // ✅ actividad
@@ -231,6 +231,7 @@ public class hiloServidor extends Thread {
             if (letras.length >= 3) {
                 final int id = Integer.parseInt(letras[1]);
                 final int keycode = Integer.parseInt(letras[2]);
+                touch(id);
 
                 // ✅ Input también cuenta como “sigue vivo”
                 if (id >= 0 && id < MAX_CLIENTES && clientes[id] != null) {

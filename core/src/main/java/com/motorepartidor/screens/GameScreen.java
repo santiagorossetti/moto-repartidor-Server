@@ -245,35 +245,6 @@ public class GameScreen implements Screen , gameController {
             }
         }
 
-        /*if (playerInGasArea[0] && inputProcessor.isEPressed() && !eKeyHandled) {
-            int restaj1 = 100 - (int)jugadores[0].getGasolina();
-            jugadores[0].restarDinero(restaj1);
-            jugadores[0].recargarGasolina(100);
-
-            enviarDinero(jugadores[0].getDinero() , jugadores[0].id);
-            enviarNafta(jugadores[0].getGasolina() , jugadores[0].id);
-
-            eKeyHandled = true;
-            if (this.audio != null) this.audio.playSound("audio/refuel.wav", 1.0f);
-            Gdx.app.log("GameScreen", "¡Jugador 1 recargó gasolina!");
-        } else if (!inputProcessor.isEPressed()) {
-            eKeyHandled = false;
-        }
-
-        if (playerInGasArea[1] && inputProcessor.isPPressed() && !pKeyHandled) {
-            int restaj2 = 100 - (int)jugadores[1].getGasolina();
-            jugadores[1].restarDinero(restaj2);
-            jugadores[1].recargarGasolina(100);
-
-            enviarNafta(jugadores[1].getGasolina() , jugadores[1].id);
-            enviarDinero(jugadores[1].getDinero() , jugadores[1].id);
-
-            pKeyHandled = true;
-            if (this.audio != null) this.audio.playSound("audio/refuel.wav", 1.0f);
-            Gdx.app.log("GameScreen", "¡Jugador 2 recargó gasolina!");
-        } else if (!inputProcessor.isPPressed()) {
-            pKeyHandled = false;
-        }*/
 
         for (int i = 0; i < jugadores.length; i++) {
             GameInputProcessor ip = inputProcessors[i];
@@ -326,36 +297,6 @@ public class GameScreen implements Screen , gameController {
         }
 
 
-        // --- ACEPTAR / ENTREGAR: JUGADOR 1 (G) ---
-       /* if (inputProcessor.isGPressed()) {
-            if (!gKeyHandled) {
-                if (p1Delivery == null && nearDealer[0]) {
-                    p1Delivery = createDelivery();
-                    if (p1Delivery != null) {
-
-                        servidor.enviarUbicacionDelivery(p1Delivery.target , p1Delivery.dangerous , p1Delivery.reward , 0);
-
-
-                        if (this.audio != null) this.audio.playSound("audio/pickup.wav", 1f);
-                        Gdx.app.log("GameScreen", p1Delivery.dangerous ? "P1 tomó pedido PELIGROSO" : "P1 tomó pedido");
-                    }
-                } else if (p1Delivery != null && nearDrop[0]) {
-                    jugadores[0].sumarDinero(p1Delivery.reward);
-                    enviarDinero(jugadores[0].getDinero() , 0);
-                    servidor.enviarFinDelivery(0);
-
-                    if (this.audio != null) this.audio.playSound("audio/deliver.wav", 1f);
-                    Gdx.app.log("GameScreen", "P1 entregó pedido. +$" + p1Delivery.reward);
-                    p1Delivery = null;
-                }
-                gKeyHandled = true;
-            }
-        } else {
-            gKeyHandled = false;
-        }
-        */
-
-        //Detecta si se presiona la G
 
         // Detecta si se presiona la G (por jugador)
         for (int i = 0; i < 2; i++) {
@@ -409,30 +350,7 @@ public class GameScreen implements Screen , gameController {
         }
 
 
-        // --- ACEPTAR / ENTREGAR: JUGADOR 2 (L) ---
-       /* if (inputProcessor.isLPressed()) {
-            if (!lKeyHandled) {
-                if (p2Delivery == null && nearDealer[1]) {
-                    p2Delivery = createDelivery();
-                    if (p2Delivery != null) {
-                        servidor.enviarUbicacionDelivery(p2Delivery.target , p2Delivery.dangerous , p2Delivery.reward , 1);
-                        if (this.audio != null) this.audio.playSound("audio/pickup.wav", 1f);
-                        Gdx.app.log("GameScreen", p2Delivery.dangerous ? "P2 tomó pedido PELIGROSO" : "P2 tomó pedido");
-                    }
-                } else if (p2Delivery != null && nearDrop[1]) {
-                    jugadores[1].sumarDinero(p2Delivery.reward);
-                    enviarDinero(jugadores[1].getDinero() , 1);
-                    servidor.enviarFinDelivery(1);
 
-                    if (this.audio != null) this.audio.playSound("audio/deliver.wav", 1f);
-                    Gdx.app.log("GameScreen", "P2 entregó pedido. +$" + p2Delivery.reward);
-                    p2Delivery = null;
-                }
-                lKeyHandled = true;
-            }
-        } else {
-            lKeyHandled = false;
-        }*/
 
         // Centro del destino -> ESCALADO a mundo
         if (p1Delivery != null && p1Delivery.target != null) {
