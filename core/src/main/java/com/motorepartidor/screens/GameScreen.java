@@ -148,10 +148,10 @@ public class GameScreen implements Screen , gameController {
 
     @Override
     public void show() {
-        // 1. Si ya inicializamos todo, solo reactivamos el Input y salimos.
+
         if (initialized) {
 
-            // Opcional: reiniciar música si se detuvo en hide()
+
             return;
         }
 
@@ -162,7 +162,7 @@ public class GameScreen implements Screen , gameController {
 
         hud = new HUD();
 
-        // === AUDIO: usar AudioManager global (reemplaza Music local) ===
+
         try {
             if (this.audio != null) {
                 this.audio.playMusic("audio/song.mp3", true, 0.1f);

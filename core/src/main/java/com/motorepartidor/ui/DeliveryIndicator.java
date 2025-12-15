@@ -26,11 +26,11 @@ public class DeliveryIndicator {
         hasTarget = true;
     }
 
-    /**
-     * Dibuja en COORDENADAS DE MUNDO usando la cámara dada:
-     * - Flecha pegada al jugador apuntando al destino
-     * - Beacon en el destino si está en frustum
-     * IMPORTANTE: llamarlo cuando NO haya otro ShapeRenderer.begin() abierto.
+    /*
+      Dibuja en COORDENADAS DE MUNDO usando la cámara dada:
+      Flecha pegada al jugador apuntando al destino
+      Beacon en el destino si está en frustum
+
      */
     public void renderWorld(float playerX, float playerY, OrthographicCamera camera, float delta) {
         if (!hasTarget || camera == null) return;

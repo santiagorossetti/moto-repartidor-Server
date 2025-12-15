@@ -15,11 +15,11 @@ public class hiloServidor extends Thread {
     private static final int PORT = 6767;
     private static final int MAX_CLIENTES = 2;
 
-    // ✅ Heartbeat
+    //  Heartbeat
     private long[] lastSeen = new long[MAX_CLIENTES];
-    private static final long CLIENT_TIMEOUT_MS = 5000; // 5s sin Ping/Input => muerto
+    private static final long CLIENT_TIMEOUT_MS = 5000; // 5s sin Ping/Input = muerto
 
-    // ✅ IDs estables: 0 y 1 siempre
+    //  IDs estables: 0 y 1 siempre
     public final direccionRed[] clientes = new direccionRed[MAX_CLIENTES];
     private int cantidadClientes = 0;
 
@@ -28,7 +28,7 @@ public class hiloServidor extends Thread {
     public hiloServidor() {
         try {
             conexion = new DatagramSocket(PORT);
-            // ✅ IMPORTANTE: para que el server pueda chequear timeouts sin bloquearse en receive()
+
             conexion.setSoTimeout(250);
         } catch (SocketException e) {
             e.printStackTrace();
@@ -80,9 +80,8 @@ public class hiloServidor extends Thread {
         interrupt();
     }
 
-    // =========================================================
-    // ✅ Conexiones (slots estables)
-    // =========================================================
+
+    //  Conexiones (slots estables)
 
     private int findSlotLibre() {
         for (int i = 0; i < MAX_CLIENTES; i++) {
@@ -103,7 +102,7 @@ public class hiloServidor extends Thread {
         InetAddress ip = dp.getAddress();
         int port = dp.getPort();
 
-        // ✅ si ya estaba conectado (mismo ip/puerto), re-envío ID (idempotente)
+        //  si ya estaba conectado (mismo ip/puerto), re-envío ID (idempotente)
         int existente = findSlotPorDireccion(ip, port);
         if (existente != -1) {
             lastSeen[existente] = System.currentTimeMillis(); // ✅ actividad
@@ -120,7 +119,7 @@ public class hiloServidor extends Thread {
         }
 
         clientes[slot] = new direccionRed(ip, port);
-        lastSeen[slot] = System.currentTimeMillis(); // ✅ inicia heartbeat
+        lastSeen[slot] = System.currentTimeMillis(); //  inicia heartbeat
         cantidadClientes++;
 
         enviarMensaje("OK", ip, port);
@@ -137,7 +136,7 @@ public class hiloServidor extends Thread {
         direccionRed c = clientes[id];
         if (c == null) return;
 
-        // seguridad: solo el mismo ip/port puede desconectar su slot
+        // solo el mismo ip/port puede desconectar su slot
         if (!c.getIp().equals(dp.getAddress()) || c.getPort() != dp.getPort()) return;
 
         // liberar slot
@@ -145,7 +144,7 @@ public class hiloServidor extends Thread {
         lastSeen[id] = 0;
         cantidadClientes = Math.max(0, cantidadClientes - 1);
 
-        // ✅ notificar al rival
+        //  notificar al rival
         int rival = (id == 0) ? 1 : 0;
         direccionRed r = safeGetCliente(rival);
         if (r != null) {
@@ -159,9 +158,9 @@ public class hiloServidor extends Thread {
         });
     }
 
-    // =========================================================
-    // ✅ Timeouts (cliente se cerró a la fuerza)
-    // =========================================================
+
+    //  Timeouts (cliente se cerró a la fuerza)
+
 
     private void checkTimeouts() {
         long now = System.currentTimeMillis();
@@ -178,18 +177,16 @@ public class hiloServidor extends Thread {
                     enviarMensaje("OpponentLeft:" + id, r.getIp(), r.getPort());
                 }
 
-                // opcional: reset server state + enviar "Reset"
-                // enviarGlobal("Reset");
-                // Gdx.app.postRunnable(() -> { if (gameController != null) gameController.onResetMatch(); });
+
 
                 break;
             }
         }
     }
 
-    // =========================================================
-    // ✅ Mensajes entrantes
-    // =========================================================
+
+    //  Mensajes entrantes
+
 
     private void procesarMensaje(DatagramPacket dp) {
         String msg = (new String(dp.getData())).trim();
@@ -219,7 +216,7 @@ public class hiloServidor extends Thread {
                 touch(id);
                 direccionRed c = safeGetCliente(id);
                 if (c != null) {
-                    lastSeen[id] = System.currentTimeMillis(); // ✅ actividad
+                    lastSeen[id] = System.currentTimeMillis(); //  actividad
                     enviarMensaje("Pong:" + id, c.getIp(), c.getPort());
                 }
             }
@@ -233,7 +230,7 @@ public class hiloServidor extends Thread {
                 final int keycode = Integer.parseInt(letras[2]);
                 touch(id);
 
-                // ✅ Input también cuenta como “sigue vivo”
+                //  Input también cuenta como “sigue vivo”
                 if (id >= 0 && id < MAX_CLIENTES && clientes[id] != null) {
                     lastSeen[id] = System.currentTimeMillis();
                 }
@@ -249,9 +246,9 @@ public class hiloServidor extends Thread {
         }
     }
 
-    // =========================================================
-    // ✅ Envíos a clientes
-    // =========================================================
+
+    //  Envíos a clientes
+
 
     public void enviarGlobal(String msg) {
         for (int i = 0; i < MAX_CLIENTES; i++) {

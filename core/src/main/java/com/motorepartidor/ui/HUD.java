@@ -10,7 +10,7 @@ import com.motorepartidor.entities.Jugador;
 
 public class HUD {
 
-    // === Estado de pedidos (se actualiza desde GameScreen) ===
+    //  Estado de pedidos (se actualiza desde GameScreen)
     private String deliveryStatus1 = "Pedido: ninguno";
     private String deliveryStatus2 = "Pedido: ninguno";
     private boolean p1NearDealer = false, p2NearDealer = false;
