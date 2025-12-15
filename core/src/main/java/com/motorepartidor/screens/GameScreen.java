@@ -74,7 +74,7 @@ public class GameScreen implements Screen , gameController {
     private AudioManager audio;
 
     private int[] lastHint = new int[]{-1, -1};
-
+    private final boolean[] lastGas = new boolean[]{false, false};
 
     // Jugadores como array
     private Jugador[] jugadores = new Jugador[2];
@@ -120,31 +120,7 @@ public class GameScreen implements Screen , gameController {
 
     }
 
-    //@Override
-    /*public void enviarNafta(float gas, int id) {
-        int puerto = servidor.clientes.get(id).getPort();
-        InetAddress ip = servidor.clientes.get(id).getIp();
 
-        servidor.enviarGas(gas , id , ip , puerto);
-    }*/
-
-    /*@Override
-    public void enviarDinero(int dinero , int id){
-        int puerto = servidor.clientes.get(id).getPort();
-        InetAddress ip = servidor.clientes.get(id).getIp();
-
-        servidor.enviarDinero(dinero , id , ip , puerto);
-    }*/
-
-    /*@Override
-    public void enviarVida(int vida, int id) {
-
-        int puerto = servidor.clientes.get(id).getPort();
-        InetAddress ip = servidor.clientes.get(id).getIp();
-
-        servidor.enviarVida(vida , id , ip , puerto);
-
-    }*/
 
     // Estado por jugador
     public static class ActiveDelivery {
@@ -262,6 +238,12 @@ public class GameScreen implements Screen , gameController {
             playerInGasArea[0] = checkPlayerInGasArea(jugadores[0]);
             playerInGasArea[1] = checkPlayerInGasArea(jugadores[1]);
 
+        for (int i = 0; i < 2; i++) {
+            if (playerInGasArea[i] != lastGas[i]) {
+                lastGas[i] = playerInGasArea[i];
+                servidor.enviarGasHint(i, playerInGasArea[i] ? 1 : 0);
+            }
+        }
 
         /*if (playerInGasArea[0] && inputProcessor.isEPressed() && !eKeyHandled) {
             int restaj1 = 100 - (int)jugadores[0].getGasolina();
@@ -680,108 +662,87 @@ public class GameScreen implements Screen , gameController {
         int plata1 = jugadores[0].getDinero();
         int plata2 = jugadores[1].getDinero();
 
-        // --- 1. Condición para SEGUIR JUGANDO (Guard Clause) ---
-        // Si ambos siguen vivos Y ninguno llegó a 1000$, no hacemos nada.
-        if ((vida1 > 0 && vida2 > 0) && (plata1 < 1000 && plata2 < 1000)) {
-            return;
-        }
+        // Sigue jugando
+        if ((vida1 > 0 && vida2 > 0) && (plata1 < 1000 && plata2 < 1000)) return;
 
         matchEnding = true;
 
-        // --- 2. Si salimos del 'if' anterior, la partida TERMINÓ ---
-        // Ahora determinamos el resultado usando una estructura if-else if-else
-        // para asegurar que solo se elija UN resultado.
-
         int winnerIndex;
 
-        // --- 3. Condición de EMPATE (Máxima prioridad) ---
-        // Ambos mueren AL MISMO TIEMPO
-        // O ambos llegan a 1000 AL MISMO TIEMPO.
         if ((vida1 <= 0 && vida2 <= 0) || (plata1 >= 1000 && plata2 >= 1000)) {
-            winnerIndex = 3; // 3 = Empate
+            winnerIndex = 3; // empate
+        } else if (vida1 <= 0 || plata2 >= 1000) {
+            winnerIndex = 2; // gana J2
+        } else {
+            winnerIndex = 1; // gana J1
         }
 
-        // --- 4. Condición de Victoria JUGADOR 2 (Segunda prioridad) ---
-        // J1 murió (y J2 no) O J2 llegó a 1000 (y J1 no).
-        else if (vida1 <= 0 || plata2 >= 200) {
-            winnerIndex = 2; // 2 = Gana Jugador 2
-        }
-
-        // --- 5. Condición de Victoria JUGADOR 1 (Última opción) ---
-        // Si no es empate Y no ganó J2, J1 debe haber ganado.
-        // (J2 murió O J1 llegó a 1000)
-        else {
-            // Esto cubre los casos restantes:
-            // (vida2 <= 0 || plata1 >= 1000)
-            winnerIndex = 1; // 1 = Gana Jugador 1
-        }
-
-        // --- 6. Finalizar la partida ---
-
-
-        // avisar a clientes
-        servidor.enviarGameOver(winnerIndex);
-
-        resetMatch();
-
-        matchEnding = false;
-
-
-
+        endMatch(winnerIndex);
     }
 
-    public void resetMatch() {
+    private void endMatch(int winnerIndex) {
+        // 1) Avisar resultado
+        servidor.enviarGameOver(winnerIndex);
 
-            // --- reset posiciones / ángulos ---
-            jugadores[0].setPosicionInicial(new Vector2(1700, 500));
-            jugadores[1].setPosicionInicial(new Vector2(1700, 450));
-            jugadores[0].setAngulo(0f);
-            jugadores[1].setAngulo(0f);
+        // 2) (Recomendado) avisar reset a clientes para limpiar HUD/delivery/hints
+        servidor.enviarGlobal("Reset");
 
-            // --- reset stats ---
-            jugadores[0].setVida(100);
-            jugadores[1].setVida(100);
-
-            jugadores[0].setDinero(0);
-            jugadores[1].setDinero(0);
-
-            jugadores[0].setGasolina(100);
-            jugadores[1].setGasolina(100);
-
-            // --- reset deliveries ---
-            p1Delivery = null;
-            p2Delivery = null;
-
-            // --- reset hints para que el cliente no quede con “Aceptar pedido” pegado ---
-            lastHint[0] = -1;
-            lastHint[1] = -1;
-            servidor.enviarHint(0, 0);
-            servidor.enviarHint(1, 0);
-
-            // --- reset flags colisiones ---
-            playersAreColliding = false;
-            playerIsCollidingObstacle[0] = false;
-            playerIsCollidingObstacle[1] = false;
-
-            // --- MUY IMPORTANTE: reset inputs del server (evita W “pegada” por UDP perdido) ---
-            inputProcessors[0] = new GameInputProcessor();
-            inputProcessors[1] = new GameInputProcessor();
-
-            // --- opcional pero recomendado: reenviar stats a clientes ---
-            enviarVida(jugadores[0].getVida(), 0);
-            enviarVida(jugadores[1].getVida(), 1);
-
-            enviarDinero(jugadores[0].getDinero(), 0);
-            enviarDinero(jugadores[1].getDinero(), 1);
-
-            enviarNafta(jugadores[0].getGasolina(), 0);
-            enviarNafta(jugadores[1].getGasolina(), 1);
-
-            // y en el próximo frame ya mandás Movimiento como siempre
-        }
+        // 3) Resetear el estado del server en el hilo de LibGDX (seguro)
+        Gdx.app.postRunnable(() -> {
+            onResetMatch();
+            matchEnding = false;
+        });
+    }
 
 
-        @Override
+    @Override
+    public void onResetMatch() {
+        // --- reset posiciones / ángulos ---
+        jugadores[0].setPosicionInicial(new Vector2(1700, 500));
+        jugadores[1].setPosicionInicial(new Vector2(1700, 450));
+        jugadores[0].setAngulo(0f);
+        jugadores[1].setAngulo(0f);
+
+        // --- reset stats ---
+        jugadores[0].setVida(100);
+        jugadores[1].setVida(100);
+        jugadores[0].setDinero(0);
+        jugadores[1].setDinero(0);
+        jugadores[0].setGasolina(100);
+        jugadores[1].setGasolina(100);
+
+        // --- reset deliveries ---
+        p1Delivery = null;
+        p2Delivery = null;
+
+        // --- reset hints ---
+        lastHint[0] = -1;
+        lastHint[1] = -1;
+        servidor.enviarHint(0, 0);
+        servidor.enviarHint(1, 0);
+
+        // --- reset flags colisiones ---
+        playersAreColliding = false;
+        playerIsCollidingObstacle[0] = false;
+        playerIsCollidingObstacle[1] = false;
+
+        // --- MUY IMPORTANTE: reset inputs (evita teclas pegadas) ---
+        inputProcessors[0] = new GameInputProcessor();
+        inputProcessors[1] = new GameInputProcessor();
+
+        // --- reenviar stats a clientes ---
+        enviarVida(jugadores[0].getVida(), 0);
+        enviarVida(jugadores[1].getVida(), 1);
+        enviarDinero(jugadores[0].getDinero(), 0);
+        enviarDinero(jugadores[1].getDinero(), 1);
+        enviarNafta(jugadores[0].getGasolina(), 0);
+        enviarNafta(jugadores[1].getGasolina(), 1);
+    }
+
+
+
+
+    @Override
     public void resize(int width, int height) {
         viewport1.update(width / 2, height, false);
         viewport2.update(width / 2, height, false);
